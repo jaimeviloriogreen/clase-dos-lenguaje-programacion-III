@@ -6,10 +6,9 @@ var api = app.MapGroup("/api");
 
 //? Simula una base de datos
 List<User> users = [
-  new User(Guid.NewGuid(),"Juan", "Rodríguez", 22),
-  new User(Guid.NewGuid(),"María", "Sánchez", 18),
-  new User(Guid.NewGuid(),"Julián", "Pérez", 32),
-  new User(Guid.NewGuid(),"María", "Sánchez Rosario", 29),
+  new User(){ Uuid = Guid.NewGuid(), FirstName = "Juan", LastName  = "Rodríguez", Age = 22 },
+  new User(){ Uuid = Guid.NewGuid(), FirstName = "María", LastName  = "Sánchez", Age = 18 },
+  new User(){ Uuid = Guid.NewGuid(), FirstName = "Julián", LastName  = "Pérez", Age = 32 },
 ];
 
 
@@ -31,6 +30,7 @@ api.MapPost("/users", (User user) => {
 
 api.MapGet("/user/{uuid}", (Guid uuid) => {
   var user = users.FirstOrDefault((u) => u.Uuid == uuid);
+
   if (user is null) {
     return Results.NotFound(new { Message = "Usuario no encontrado" });
   }
@@ -38,18 +38,51 @@ api.MapGet("/user/{uuid}", (Guid uuid) => {
   return Results.Ok(new { User = user });
 });
 
-// TODO: Implementar UPDATE y DELETE
+api.MapGet("/user-ages", (int age) => {
+  var userAges = users.FindAll(user => user.Age > age);
 
-api.MapDelete("/user/{uuid}", (Guid uuid) => {
-  return new NotImplementedException();
+  if (userAges.Count <= 0) {
+    return Results.NotFound(new { Message = "No existen usuarios con esos criterios" });
+  }
+
+  return Results.Ok(userAges);
 });
 
-api.MapPatch("/user/{uuid}", (Guid uuid, User user) => {
-  return new NotImplementedException();
+api.MapDelete("/user/{uuid}", (Guid uuid) => {
+  // LinQ
+  var user = users.FirstOrDefault((usr) => usr.Uuid == uuid);
+
+  if (user is null) {
+    return Results.NotFound(new { Message = "Usuario no encontrado" });
+  }
+
+  users.Remove(user);
+
+  return Results.NoContent();
+});
+
+api.MapPut("/user/{uuid}", (Guid uuid, User user) => {
+  var oldUser = users.FirstOrDefault((usr) => usr.Uuid == uuid);
+
+  if (oldUser is null) {
+    return Results.NotFound(new { Message = "Usuario no encontrado" });
+  }
+
+  oldUser.FirstName = user.FirstName;
+  oldUser.LastName = user.LastName;
+  oldUser.Age = user.Age;
+
+
+  return Results.NoContent();
 });
 
 app.Run("http://localhost:3000");
 
 
 // Modelo
-record User(Guid Uuid, string Nombre, string Apellido, int Edad);
+record User() {
+  public Guid Uuid { get; init; }
+  required public string FirstName { get; set; }
+  required public string LastName { get; set; }
+  required public int Age { get; set; }
+};
